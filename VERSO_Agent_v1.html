@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VERSO-DH-Chatbot für Leicht verständliche Sprache</title>
+    <!-- Tailwind CSS wird geladen -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variablen für Farben, die je nach Schema angepasst werden */
+        :root {
+            /* Standard-Schema */
+            --text-color: #333;
+            --background-color: #f0f0f0;
+            --chat-background-color: #fff;
+            --header-background-color: #e0e0e0;
+            --border-color: #ccc;
+            --user-message-bg: #d0d0d0;
+            --bot-message-bg: #e9e9e9;
+            --button-background-color: #a0a0a0;
+            --button-text-color: white;
+            --button-hover-bg: #888;
+            --suggestion-button-bg: #e0e0e0;
+            --suggestion-button-hover-bg: #d0d0d0;
+            --suggestion-title-color: #333;
+            --settings-control-bg: #e0e0e0;
+            --settings-control-border: #ccc;
+
+            /* Basis-Schriftgröße, wird über JavaScript angepasst */
+            --base-font-size: 20pt;
+        }
+
+        /* Farbschema: Hoher Kontrast */
+        body.theme-high-contrast {
+            --text-color: #fff;
+            --background-color: #000;
+            --chat-background-color: #222;
+            --header-background-color: #333;
+            --border-color: #555;
+            --user-message-bg: #555;
+            --bot-message-bg: #777;
+            --button-background-color: #999;
+            --button-text-color: #fff;
+            --button-hover-bg: #bbb;
+            --suggestion-button-bg: #444;
+            --suggestion-button-hover-bg: #666;
+            --suggestion-title-color: #fff;
+            --settings-control-bg: #444;
+            --settings-control-border: #666;
+        }
+
+        /* Farbschema: Graustufen */
+        body.theme-grayscale {
+            --text-color: #333;
+            --background-color: #f5f5f5;
+            --chat-background-color: #e0e0e0;
+            --header-background-color: #c0c0c0;
+            --border-color: #a0a0a0;
+            --user-message-bg: #b0b0b0;
+            --bot-message-bg: #d0d0d0;
+            --button-background-color: #808080;
+            --button-text-color: white;
+            --button-hover-bg: #606060;
+            --suggestion-button-bg: #c0c0c0;
+            --suggestion-button-hover-bg: #a0a0a0;
+            --suggestion-title-color: #333;
+            --settings-control-bg: #c0c0c0;
+            --settings-control-border: #a0a0a0;
+        }
+
+        /* Basis-Styles für den Körper */
+        body {
+            font-family: 'Open Sans', sans-serif;
+            font-size: var(--base-font-size); /* Nutzt die CSS Variable für die Schriftgröße */
+            color: var(--text-color);
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Container für den Chatbot, nimmt 70% der Fenstergröße ein */
+        .chat-container {
+            width: 70vw;
+            height: 70vh;
+            background-color: var(--chat-background-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Kopfzeile des Chatbots */
+        .chat-header {
+            padding: 16px 20px;
+            background-color: var(--header-background-color);
+            color: var(--text-color); /* Textfarbe aus Variable */
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color); /* Randfarbe aus Variable */
+            text-align: center; /* Titel zentrieren */
+        }
+
+        /* Einstellungen-Steuerelemente Bereich */
+        .settings-controls-area {
+            padding: 10px 20px;
+            background-color: var(--settings-control-bg);
+            border-bottom: 1px solid var(--settings-control-border);
+            display: flex;
+            justify-content: space-around; /* Verteilt die Elemente gleichmäßig */
+            align-items: center;
+            font-size: 1em; /* Skaliert mit der Basis-Schriftgröße */
+            flex-wrap: wrap; /* Erlaubt Umbruch auf kleineren Bildschirmen */
+            gap: 10px; /* Abstand zwischen den Elementen */
+        }
+
+        .settings-controls-area label,
+        .settings-controls-area select,
+        .settings-controls-area button {
+            font-size: 1em; /* Passt sich der Basis-Schriftgröße an */
+            background-color: var(--settings-control-bg);
+            border: 1px solid var(--settings-control-border);
+            color: var(--text-color);
+            padding: 6px 10px; /* Angepasstes Padding */
+            border-radius: 6px;
+            cursor: pointer;
+            min-width: 0; /* Verhindert Überlauf */
+        }
+        .settings-controls-area button:hover {
+            background-color: var(--button-hover-bg); /* Nutzt bestehende Hover-Farbe */
+        }
+        .settings-controls-area select {
+            padding-right: 25px; /* Platz für Dropdown-Pfeil */
+        }
+
+        /* Nachrichtenbereich */
+        .chat-messages {
+            flex-grow: 1; /* Nimmt den verbleibenden Platz ein */
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            /* max-height wird nicht mehr benötigt, da flex-grow den Platz korrekt zuweist */
+        }
+
+        /* Individuelle Nachricht */
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 10px;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Benutzer-Nachricht */
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--user-message-bg);
+            color: var(--text-color);
+        }
+
+        /* Bot-Nachricht */
+        .message.bot {
+            align-self: flex-start;
+            background-color: var(--bot-message-bg);
+            color: var(--text-color);
+        }
+
+        /* Styling für fetten Text innerhalb von Nachrichten */
+        .message strong {
+            font-weight: 700;
+        }
+
+        /* Eingabebereich für Nachrichten */
+        .chat-input-area {
+            display: flex;
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--background-color);
+        }
+
+        /* Eingabefeld */
+        .chat-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em; /* Erbt von body und skaliert proportional */
+            outline: none;
+            color: var(--text-color);
+            background-color: var(--chat-background-color);
+        }
+
+        /* Senden-Button */
+        .chat-send-button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: var(--button-background-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em; /* Erbt von body und skaliert proportional */
+            transition: background-color 0.3s ease;
+        }
+
+        /* Hover-Effekt für den Senden-Button */
+        .chat-send-button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        /* Lade-Animation */
+        .dot-animation {
+            display: inline-block;
+        }
+
+        .dot-animation span {
+            animation: blink 1.4s infinite linear;
+            font-size: 1em; /* Skaliert mit Basis-Font */
+            opacity: 0;
+        }
+
+        .dot-animation span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .dot-animation span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot-animation span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Vorschläge für weitere Fragen */
+        .suggestions-area {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--background-color);
+            text-align: center;
+        }
+
+        .suggestions-area p.font-bold {
+            color: var(--suggestion-title-color);
+        }
+
+        .suggestion-button {
+            background-color: var(--suggestion-button-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 15px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 0.8em; /* Etwas kleinere Schriftgröße für die Vorschläge im Verhältnis zur Basis */
+            transition: background-color 0.3s ease;
+        }
+
+        .suggestion-button:hover {
+            background-color: var(--suggestion-button-hover-bg);
+        }
+
+        /* Responsives Design für kleinere Bildschirme */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .chat-container {
+                width: 95vw; /* Auf kleinen Bildschirmen fast volle Breite */
+                height: 90vh; /* Auf kleinen Bildschirmen fast volle Höhe */
+            }
+            /* Die max-height für chat-messages wird nun durch flex-grow in Kombination mit der Höhe des Containers und der fixen Höhen der Geschwisterelemente bestimmt */
+            .suggestions-area {
+                padding: 10px;
+            }
+            .suggestion-button {
+                display: block; /* Knöpfe untereinander auf kleinen Bildschirmen */
+                width: calc(100% - 10px);
+                margin: 5px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <span class="chat-header-title">VERSO-DH-Chatbot für Leicht verständliche Sprache</span>
+        </div>
+        <div class="settings-controls-area">
+            <div class="flex items-center space-x-2">
+                <label for="theme-select">Schema:</label>
+                <select id="theme-select" class="p-1 rounded-md">
+                    <option value="default">Standard</option>
+                    <option value="high-contrast">Hoher Kontrast</option>
+                    <option value="grayscale">Graustufen</option>
+                </select>
+            </div>
+            <div class="flex items-center space-x-2">
+                <label>Schriftgröße:</label>
+                <button id="font-decrease" class="p-1 rounded-md">-</button>
+                <button id="font-increase" class="p-1 rounded-md">+</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Initialfrage des Chatbots -->
+            <div class="message bot">
+                Hallo! Wie kann ich Ihnen helfen?
+            </div>
+        </div>
+        <div class="suggestions-area" id="suggestions-area">
+            <!-- Vorschläge für weitere Fragen werden hier angezeigt -->
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Schreiben Sie hier Ihre Nachricht...">
+            <button id="chat-send-button" class="chat-send-button">Senden</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Importe
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global verfügbare Variablen für App ID, Firebase Konfiguration und API Key
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const apiKey = ""; // API-Schlüssel bleibt leer, da er vom Canvas-System bereitgestellt wird
+
+        // Firebase Initialisierung
+        let app;
+        let db;
+        let auth;
+        let userId = 'anon';
+
+        // Chatbot-Status zur Steuerung des Workflows
+        let chatbotState = 'waitingForInitialQuery'; // Mögliche Zustände: 'waitingForInitialQuery', 'waitingForSuggestionSelection'
+        let initialUserQuery = ''; // Speichert die initiale Anfrage des Benutzers
+
+        // Schriftgrößen-Stufen
+        const FONT_SIZES_PT = [16, 20, 24, 28]; // In pt
+        let currentFontSizeIndex = 1; // Standard ist 20pt
+
+        // Die Anweisungen für Leichte Sprache als Konstante
+        const instructionText = `
+            Antworte in einfacher deutscher Sprache. Bitte achte strikt auf diese Regeln:
+
+            **Wort·ebene:**
+            – Benutze Wörter, die kurz, klar und oft verwendet werden. Das sind Wörter aus dem all·täg·lichen Sprach·gebrauch.
+            – Er·kläre Wörter, die du selten benutzt, mit anderen Worten. Oder du gibst Beispiele.
+            – Benutze gleiche Wörter statt vieler verschiedener Wörter. Das heißt: Nutze Syno·nyme nur, wenn es nötig ist.
+            – Benutze keine Bilder·sprache. Das ist zum Beispiel, wenn man sagt: "Das ist ein Löwe". Aber man meint einen mutigen Menschen. Benutze auch keine Iro·nie. Das ist, wenn man das Gegen·teil von dem sagt, was man meint.
+            – Benutze keine Fach·wörter und Fremd·wörter. Wenn es nicht anders geht: Er·kläre sie.
+            – Wenn ein Wort anders gesprochen wird, als es geschrieben wird: Sage, wie man es spricht.
+            – Schreibe keine ganzen Wörter groß (VERSALIEN). Das gilt nur für Ab·kür·zungen, die man als einzelne Buchstaben spricht. Oder für Namen von Firmen, Produkten und Personen.
+            – Benutze keine kurzen Wörter (Kurz·wörter) und Ab·kür·zungen, die nicht jeder kennt. Mengen und Längen kann man ab·kür·zen, wenn es passend ist.
+            – Vermeide lange und schwere Wörter. Das sind Wörter mit mehr als fünf Silben. Oder mit seltsamen Buch·staben·folgen. Oder mit vielen Konsonanten hinter·einander. Oder Wörter, die man selten hört.
+            – Trenne die Teile von zusammen·gesetzten Wörtern mit einem Mittel·punkt. Das gilt, wenn die Wörter vier oder mehr Silben haben. Zum Beispiel: "Haupt·bahnhof" statt "Hauptbahnhof". Oder "Tisch·gesell·schaft" statt "Tischgesellschaft". Ein Trenn·strich ist nicht gut. Großbuch·staben in der Mitte eines Wortes sind nicht gut.
+            – Benutze keine Sonder·zeichen. Benutze keine Trenn·striche am Zeilen·ende. Mathe·matische Zeichen sollen klar sein. Und man soll sie erklären, wenn es nötig ist.
+            – Zahlen schreibst du mit Ziffern. Das sind die arabischen Ziffern (1, 2, 3). Benutze keine römischen Ziffern (I, V, X). Große oder komplizierte Zahlen ab 6 Stellen kannst du einfacher machen. Zum Beispiel mit Angaben zur Zeit oder Menge. Ordnungs·zahlen (1., 2.) sollst du vermeiden. Schreibe sie als normale Zahlen (1, 2). Oder schreibe sie aus (erster, zweiter).
+            – Schreibe so, dass alle Menschen sich angesprochen fühlen. Nutze neutrale Wörter. Oder spreche die Nutzer direkt an. Oder benutze beide Formen, die man gut versteht. Zum Beispiel: "Schü·le·rinnen und Schü·ler".
+
+            **Satz·ebene:**
+            – Deine Sätze sollen kurz sein. Im Durch·schnitt acht bis zehn Wörter. Nicht länger als 12 Wörter. Jeder Satz soll eine Sache sagen.
+            – Die Wörter im Satz sollen in der normalen Reihen·folge stehen: Wer oder was? Macht was? Mit wem oder was? (Subjekt-Prädikat-Objekt). Wörter für Zeit oder Ort können am Anfang stehen.
+            – Vermeide lange und ver·schach·telte Sätze. Vermeide Neben·sätze. Wenn du viele Dinge auf·zählst, mache keine Listen. Schreibe lieber einen normalen Text. Listen sollst du nur selten nutzen.
+            – Die kurzen Wörter vor Nomen (Artikel) und die Nomen selbst sollen in einer Zeile stehen.
+            – Trenne keine Wörter am Zeilen·ende.
+            – Benutze mehr Verben (Tu·wörter) als Nomen (Nenn·wörter). Lange Nomen·gruppen sollen kurze Sätze sein.
+            – Wenn ein Nomen einen Genitiv hat, ist das meist kein Problem. Zum Beispiel: "Das Buch des Mannes". Aber wenn es um Ab·strak·tes geht: Vermeide Genitiv·attribute. Oder wenn viele Genitiv·attribute hinter·einander stehen. Du kannst stattdessen "von" benutzen. Zum Beispiel: "Das Buch von dem Mann".
+            – Über·prüfe, ob du ein "nicht" oder "kein" brauchst. Wenn nicht: Lass es weg. Wenn doch: Benutze Wörter aus dem all·täg·lichen Sprach·gebrauch. Und mache das "nicht" oder "kein" deutlicher. Vermeide zum Beispiel "un-". Vermeide doppelte Verneinungen. Und mehrere Teile mit "nicht". Und Wörter für Verneinung, die man nicht oft hört.
+            – Benutze keine Passiv·sätze. Das sind Sätze wie: "Das Haus wird gebaut". Benutze stattdessen Aktiv·sätze. Das sind Sätze wie: "Die Bau·arbeiter bauen das Haus". Nenne immer, wer handelt. Ausnahmen: Wenn jemand etwas erleidet (Opfer·passiv). Oder wenn ein Zustand ist (Zustands·passiv).
+            – Vermeide Konjunktiv I und II. Das ist eine bestimmte Form von Verben, die Wünsche oder Möglichkeiten ausdrückt. Benutze stattdessen Wörter, die man im Alltag spricht.
+            – Du benutzt die gleichen Satz·zeichen wie in der normalen deutschen Sprache. Meistens sind das: Punkt, Doppel·punkt, Frage·zeichen, Komma und Ausrufe·zeichen. Benutze keine An·führungs·zeichen. Wenn es doch nötig ist (zum Beispiel bei wörtlicher Rede oder Zitaten): Benutze diese Zeichen: („ “).
+
+            **Text·ebene:**
+            – Plane und gestalte den ganzen Text extra. Das hilft den Nutzern, den Text zu verstehen.
+            – Schreibe am liebsten normale Texte. Vermeide, wenn es geht, Auf·zäh·lungen.
+            – Es kann sein, dass du nicht alle Infos nutzen kannst. Dann können Infos in andere Texte.
+            – Texte in Leichter Sprache sollen ähnlich sein wie der Ur·sprungs·text.
+            – Sage klar, wozu der Text da ist.
+            – Dein Text soll klar auf·ge·teilt sein: in Absätze, mit Er·klä·rungen zur Auf·tei·lung. Mit Zusam·men·fas·sungen, Ein·lei·tungen, Vor·worten, Inhalts·ver·zeich·nissen und Über·schriften. Die Auf·tei·lung soll man gut sehen können.
+            – Achte darauf, dass der Text zu·sammen·hängt. Zeige, wie die Aussagen zuein·ander passen. Und benutze immer gleiche Wörter, um Sätze zu ver·binden. Wenn es einen Ur·sprungs·text gibt: Behalte die Auf·tei·lung bei. Oder er·kläre sie.
+            – Er·klä·rungen im Text sollen nicht zu viele sein. Er·kläre ein Wort, wenn es das erste Mal da ist. Du kannst es wieder er·klären, wenn es öfter vor·kommt. Er·klä·rungen können im Text stehen. Oder in Info·kästen. Oder in einem Wörter·buch.
+            – Verweise auf andere Stellen sollen selten sein. Nur wenn sie wirklich helfen. Und ohne Ab·kür·zungen. Nutze keine Fuß·noten. Nutze stattdessen erklärende Texte.
+            – Ein Wörter·buch (Glossar) kann für viele neue Wörter sein. Oder für Er·klä·rungen, die oft wieder·holt werden. Oder nur für einen Teil der Nutzer. Sage klar, dass es ein Wörter·buch gibt und wie man es nutzt.
+            – Vermeide Pronomen (Für·wörter) wie "er", "sie", "es". Nenne stattdessen das Wort. Zum Beispiel: "der Mann" statt "er".
+            – Forme indirekte Rede in direkte Rede um. Zum Beispiel: "Er sagte, dass er kommt" wird zu: "Er sagte: 'Ich komme!'".
+            – Sprich die Nutzer direkt an. Plane das gut. Es soll zum Alter und zur Situation passen. Wechsle nicht die Anrede. Und benutze nicht immer nur "du".
+            – Zitate aus Texten, die nicht in Leichter Sprache sind, sollst du nicht nutzen. Über·setze sie in Leichte Sprache. Außer, sie sind leicht zu verstehen oder sehr wichtig. Dann markiere sie.
+
+            **Si·tu·ation:**
+            – Denke daran, wo der Text genutzt wird. Zum Beispiel: Welche Wörter sind wichtig? Wie sprichst du die Leute an? Wie lang soll der Text sein? Wie ist er auf·ge·baut? Gibt es Bilder? Welches Format hat der Text? Gibt es weitere Infos?
+        `;
+
+        // Funktion zur sicheren Ausführung von Firestore-Operationen nach der Authentifizierung
+        async function initializeFirebaseAndAuth() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    userId = auth.currentUser?.uid || crypto.randomUUID();
+
+                    console.log('Firebase erfolgreich initialisiert und authentifiziert. User ID:', userId);
+                } else {
+                    console.warn('Firebase-Konfiguration nicht gefunden. Firestore-Funktionen sind deaktiviert.');
+                }
+            } catch (error) {
+                console.error("Fehler bei der Firebase-Initialisierung oder Authentifizierung:", error);
+                db = null;
+                auth = null;
+            }
+        }
+
+        // DOM-Elemente holen
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatSendButton = document.getElementById('chat-send-button');
+        const suggestionsArea = document.getElementById('suggestions-area');
+        const themeSelect = document.getElementById('theme-select');
+        const fontDecreaseButton = document.getElementById('font-decrease');
+        const fontIncreaseButton = document.getElementById('font-increase');
+        const bodyElement = document.body;
+
+        // Funktion zum Formatieren von Markdown (Fettdruck) in HTML
+        function formatMarkdownToHtml(text) {
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
+
+        // Funktion zum Hinzufügen einer Nachricht zum Chat-Fenster
+        function addMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender);
+            messageElement.innerHTML = formatMarkdownToHtml(text);
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Funktion zum Anwenden des Farbschemas
+        function applyTheme(themeName) {
+            bodyElement.classList.remove('theme-high-contrast', 'theme-grayscale'); // Vorherige Themes entfernen
+            if (themeName !== 'default') {
+                bodyElement.classList.add(`theme-${themeName}`);
+            }
+            localStorage.setItem('chatbot-theme', themeName); // Theme speichern
+        }
+
+        // Funktion zum Anwenden der Schriftgröße
+        function applyFontSize(index) {
+            currentFontSizeIndex = Math.max(0, Math.min(FONT_SIZES_PT.length - 1, index));
+            const newFontSize = FONT_SIZES_PT[currentFontSizeIndex] + 'pt';
+            document.documentElement.style.setProperty('--base-font-size', newFontSize); // Apply to root CSS variable
+            localStorage.setItem('chatbot-font-size-index', currentFontSizeIndex); // Index speichern
+        }
+
+        // Event-Listener für Theme-Auswahl
+        themeSelect.addEventListener('change', (event) => {
+            applyTheme(event.target.value);
+        });
+
+        // Event-Listener für Schriftgröße verkleinern
+        fontDecreaseButton.addEventListener('click', () => {
+            applyFontSize(currentFontSizeIndex - 1);
+        });
+
+        // Event-Listener für Schriftgröße vergrößern
+        fontIncreaseButton.addEventListener('click', () => {
+            applyFontSize(currentFontSizeIndex + 1);
+        });
+
+
+        // Funktion zum Anzeigen von Vorschlägen
+        function displaySuggestions(suggestions) {
+            suggestionsArea.innerHTML = ''; // Vorherige Vorschläge entfernen
+            if (suggestions && suggestions.length > 0) {
+                const title = document.createElement('p');
+                title.classList.add('mb-2', 'font-bold');
+                title.textContent = 'Was möchten Sie als Nächstes wissen?';
+                suggestionsArea.appendChild(title);
+
+                suggestions.forEach(suggestion => {
+                    const button = document.createElement('button');
+                    button.classList.add('suggestion-button');
+                    button.textContent = suggestion;
+                    button.onclick = () => {
+                        sendMessageToGemini(suggestion, true); // true bedeutet, dass es eine angeklickte Suggestion ist
+                        suggestionsArea.innerHTML = ''; // Vorschläge nach Auswahl entfernen
+                    };
+                    suggestionsArea.appendChild(button);
+                });
+            }
+        }
+
+        // Funktion zum Aufteilen des Textes in Sinneinheiten (Abschnitte, die durch doppelte Leerzeilen getrennt sind)
+        function splitIntoSenseUnits(text) {
+            const units = text.split('\n\n').map(unit => unit.trim()).filter(unit => unit.length > 0);
+
+            // Strikte Einhaltung von 3 bis 5 Sinneinheiten
+            if (units.length < 3) {
+                if (units.length === 0) return [];
+                if (units.length === 1) return units;
+                return units;
+            } else if (units.length > 5) {
+                return units.slice(0, 5);
+            } else {
+                return units;
+            }
+        }
+
+        // Funktion zum Senden einer Nachricht an den Gemini API
+        async function sendMessageToGemini(message, isSuggestionClicked = false) {
+            if (!message.trim()) {
+                // Leere Nachrichten ignorieren
+                return;
+            }
+
+            // Wenn der Nutzer etwas tippt, während Vorschläge angezeigt werden, und es keine Vorschlagsklick ist,
+            // behandeln wir es als neue Initialfrage.
+            if (chatbotState === 'waitingForSuggestionSelection' && !isSuggestionClicked) {
+                addMessage("Ich verstehe. Möchten Sie über ein neues Thema sprechen? Bitte geben Sie Ihre neue Frage ein. Oder wählen Sie einen Vorschlag, wenn Sie das vorherige Thema vertiefen möchten.", 'bot');
+                chatbotState = 'waitingForInitialQuery'; // Status zurücksetzen
+                displaySuggestions([]); // Alte Vorschläge löschen
+                initialUserQuery = ''; // Kontext löschen
+                chatInput.value = ''; // Eingabefeld leeren
+                return; // Verarbeitung hier beenden
+            }
+
+
+            // Behandelt den initialen Workflow: Recherche und Vorschläge
+            if (chatbotState === 'waitingForInitialQuery') {
+                initialUserQuery = message; // Speichert die initiale Anfrage
+                addMessage(message, 'user');
+                chatInput.value = ''; // Eingabefeld leeren
+
+                const loadingMessage = document.createElement('div');
+                loadingMessage.classList.add('message', 'bot');
+                loadingMessage.innerHTML = 'Der Chatbot **recherchiert** und denkt über Anschluss·fragen nach... <span class="dot-animation">.<span>.<span>.</span></span></span>';
+                chatMessages.appendChild(loadingMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                try {
+                    // Gemini API-Aufruf für kurze Zusammenfassung und 5 Anschlussfragen
+                    // Der Prompt weist Gemini an, die Recherche selbst zu "simulieren" und die Regeln der Leichten Sprache zu beachten.
+                    const initialPrompt = `Recherchiere das Thema "${message}" kurz und fasse es in 1-2 Sinneinheiten in Leichter Sprache zusammen. Danach schlage fünf weitere Fragen vor, die der Nutzer stellen könnte und die zum Thema "${message}" passen und eng damit verbunden sind. Bleibe dabei immer kontextbezogen zur Ausgangsfrage. Wenn der Kontext zu unklar ist, frage nach. Gib die Antworten als JSON-Objekt mit zwei Eigenschaften aus: "summary" (String) und "suggestions" (Array von Strings). Beachte strikt die Regeln der Leichten Sprache für die Zusammenfassung und die Fragen.`;
+                    const chatHistoryInitial = [{ role: "user", parts: [{ text: instructionText + "\n" + initialPrompt }] }];
+                    const payloadInitial = {
+                        contents: chatHistoryInitial,
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    summary: { type: "STRING" },
+                                    suggestions: {
+                                        type: "ARRAY",
+                                        items: { type: "STRING" }
+                                    }
+                                },
+                                propertyOrdering: ["summary", "suggestions"]
+                            }
+                        }
+                    };
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const responseInitial = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadInitial)
+                    });
+                    const resultInitial = await responseInitial.json();
+
+                    chatMessages.removeChild(loadingMessage); // Ladeanzeige entfernen
+
+                    if (resultInitial.candidates && resultInitial.candidates.length > 0 &&
+                        resultInitial.candidates[0].content && resultInitial.candidates[0].content.parts &&
+                        resultInitial.candidates[0].content.parts.length > 0) {
+                        const jsonString = resultInitial.candidates[0].content.parts[0].text;
+                        try {
+                            const parsedResponse = JSON.parse(jsonString);
+                            addMessage(parsedResponse.summary, 'bot'); // Zeigt die Zusammenfassung an
+                            displaySuggestions(parsedResponse.suggestions);
+                            chatbotState = 'waitingForSuggestionSelection'; // Status ändern
+                        } catch (parseError) {
+                            console.error('Fehler beim Parsen der initialen Antwort (Zusammenfassung/Vorschläge):', parseError);
+                            addMessage("Entschuldigung. Ich konnte keine passenden Infos finden oder generieren. Bitte versuchen Sie es anders. Möchten Sie eine andere Frage stellen?", 'bot');
+                            chatbotState = 'waitingForInitialQuery'; // Status zurücksetzen
+                        }
+                    } else {
+                        console.warn('Keine Initialantwort erhalten, oder unerwartete Struktur.');
+                        addMessage("Entschuldigung. Ich konnte keine passenden Infos finden oder generieren. Bitte versuchen Sie es anders. Möchten Sie eine andere Frage stellen?", 'bot');
+                        chatbotState = 'waitingForInitialQuery'; // Status zurücksetzen
+                    }
+
+                } catch (error) {
+                    chatMessages.removeChild(loadingMessage);
+                    addMessage("Es gab einen Fehler bei der Kommunikation mit dem Bot. Bitte versuchen Sie es später noch einmal.", 'bot');
+                    console.error('Fehler beim Aufruf der Gemini API für initiale Anfrage:', error);
+                    chatbotState = 'waitingForInitialQuery'; // Status zurücksetzen
+                }
+            } else if (chatbotState === 'waitingForSuggestionSelection') {
+                // Behandelt die Auswahl einer Anschlussfrage und Generierung der Hauptantwort
+                addMessage(message, 'user'); // Zeigt die ausgewählte Frage als Benutzer-Nachricht an
+
+                const summarizingMessage = document.createElement('div');
+                summarizingMessage.classList.add('message', 'bot');
+                summarizingMessage.innerHTML = 'Der Chatbot fasst die Infos zusammen... <span class="dot-animation">.<span>.<span>.</span></span></span>';
+                chatMessages.appendChild(summarizingMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                try {
+                    // Prompt für die Hauptantwort basierend auf der ausgewählten Frage und der initialen Anfrage
+                    // Betonung auf Kontext und Leichte Sprache
+                    const mainAnswerPrompt = `Basierend auf Ihrer Frage: "${message}", und im Kontext unserer vorherigen Unterhaltung über "${initialUserQuery}", fassen Sie den Inhalt in eigenen Worten zusammen.
+                    Bleiben Sie dabei immer **kontextbezogen** zur Ausgangsfrage. Wenn der Kontext zu unklar ist, fragen Sie nach.
+                    Antworten Sie in einfacher deutscher Sprache.
+                    Nutzen Sie nur wenige Aufzählungen, formulieren Sie lieber einen zusammenhängenden Text.
+                    Halten Sie sich kurz und beschränken Sie sich auf das Wesentliche.
+                    Ihre Antwort muss gegliedert in **minimal drei (3) bis maximal fünf (5) Abschnitte** sein, die jeweils eine Sinneinheit darstellen. Jeder Abschnitt sollte durch eine doppelte Leerzeile getrennt sein.
+                    Beachten Sie strikt die Leichte-Sprache-Regeln, insbesondere die geschlechtergerechten Sprachmuster.`;
+
+                    const chatHistoryMainAnswer = [{ role: "user", parts: [{ text: instructionText + "\n" + mainAnswerPrompt }] }];
+                    const payloadMainAnswer = { contents: chatHistoryMainAnswer };
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const responseMainAnswer = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payloadMainAnswer)
+                    });
+                    const resultMainAnswer = await responseMainAnswer.json();
+
+                    chatMessages.removeChild(summarizingMessage); // Ladeanzeige entfernen
+
+                    if (resultMainAnswer.candidates && resultMainAnswer.candidates.length > 0 &&
+                        resultMainAnswer.candidates[0].content && resultMainAnswer.candidates[0].content.parts &&
+                        resultMainAnswer.candidates[0].content.parts.length > 0) {
+                        const botResponseFull = resultMainAnswer.candidates[0].content.parts[0].text;
+
+                        // Speichere die volle Antwort in Firestore
+                        if (db) {
+                            const messagesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/messages`);
+                            await addDoc(messagesCollectionRef, {
+                                userMessage: message,
+                                botResponse: botResponseFull,
+                                timestamp: serverTimestamp()
+                            });
+                            console.log("Nachricht in Firestore gespeichert.");
+                        }
+
+                        // Bot-Antwort in Sinneinheiten aufteilen und anzeigen
+                        const senseUnits = splitIntoSenseUnits(botResponseFull);
+
+                        for (let i = 0; i < senseUnits.length; i++) {
+                            await new Promise(resolve => setTimeout(() => {
+                                addMessage(senseUnits[i], 'bot');
+                                resolve();
+                            }, i * 700)); // 700ms Verzögerung pro Sinneinheit
+                        }
+
+                        // Nach der Hauptantwort den Zustand zurücksetzen, um eine neue Initialfrage zu ermöglichen
+                        chatbotState = 'waitingForInitialQuery';
+                        displaySuggestions([]); // Vorschläge leeren
+                        initialUserQuery = ''; // Initiale Anfrage zurücksetzen
+                    } else {
+                        addMessage("Entschuldigung. Ich konnte leider keine Antwort finden. Bitte versuchen Sie es noch einmal. Möchten Sie eine andere Frage stellen?", 'bot');
+                        console.error('Unerwartete API-Antwortstruktur für die Hauptantwort:', resultMainAnswer);
+                        chatbotState = 'waitingForInitialQuery'; // Status zurücksetzen
+                    }
+                } catch (error) {
+                    chatMessages.removeChild(summarizingMessage);
+                    addMessage("Es gab einen Fehler beim Senden Ihrer Nachricht. Bitte versuchen Sie es später noch einmal.", 'bot');
+                    console.error('Fehler beim Aufruf der Gemini API für Hauptantwort:', error);
+                    chatbotState = 'waitingForInitialQuery'; // Status zurücksetzen
+                }
+            }
+        }
+
+        // Event-Listener für den Senden-Button
+        chatSendButton.addEventListener('click', () => {
+            const message = chatInput.value.trim();
+            if (message) {
+                sendMessageToGemini(message, false);
+            }
+        });
+
+        // Event-Listener für die Enter-Taste im Eingabefeld
+        chatInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                chatSendButton.click();
+            }
+        });
+
+        // Firebase initialisieren und anschließend Nachrichten laden
+        window.onload = async () => {
+            await initializeFirebaseAndAuth();
+
+            // Gespeicherte Einstellungen laden
+            const savedTheme = localStorage.getItem('chatbot-theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+                themeSelect.value = savedTheme; // Dropdown aktualisieren
+            }
+
+            const savedFontSizeIndex = localStorage.getItem('chatbot-font-size-index');
+            if (savedFontSizeIndex !== null) {
+                applyFontSize(parseInt(savedFontSizeIndex));
+            } else {
+                applyFontSize(currentFontSizeIndex); // Standardgröße anwenden, wenn nichts gespeichert ist
+            }
+
+            // Nachrichten aus Firestore laden
+            if (db && userId !== 'anon') {
+                try {
+                    const messagesRef = collection(db, `artifacts/${appId}/users/${userId}/messages`);
+                    const q = query(messagesRef, orderBy("timestamp"));
+
+                    onSnapshot(q, (snapshot) => {
+                        // Löscht alle Nachrichten außer der Initialnachricht, um sie neu zu laden
+                        while (chatMessages.children.length > 1) {
+                            chatMessages.removeChild(chatMessages.lastChild);
+                        }
+                        snapshot.forEach((doc) => {
+                            const data = doc.data();
+                            addMessage(data.userMessage, 'user');
+                            // Volle Bot-Antwort in Sinneinheiten aufteilen und anzeigen
+                            const senseUnits = splitIntoSenseUnits(data.botResponse);
+                            senseUnits.forEach(unit => addMessage(unit, 'bot'));
+                        });
+                        console.log("Nachrichten aus Firestore geladen.");
+                    });
+                } catch (error) {
+                    console.error("Fehler beim Laden der Nachrichten aus Firestore:", error);
+                }
+            } else {
+                console.log("Firestore-Laden übersprungen, da keine Authentifizierung oder db nicht verfügbar.");
+            }
+        };
+    </script>
+</body>
+</html>
